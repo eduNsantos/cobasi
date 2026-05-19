@@ -1,42 +1,34 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Product } from './entities/product.entity';
+import { Product, ProductDocument } from './entities/product.entity';
 
 @Injectable()
 export class ProductService {
-  private products: Product[] = [];
-  private idCounter = 1;
+  constructor(@InjectModel(Product.name) private productModel: Model<ProductDocument>) {}
 
-  create(createProductDto: CreateProductDto): Product {
-    const product: Product = {
-      id: this.idCounter++,
-      ...createProductDto,
-    };
-    this.products.push(product);
-    return product;
+  async create(createProductDto: CreateProductDto) {
+    const createdProduct = new this.productModel(createProductDto);
+    return await createdProduct.save();
   }
 
-  findAll(): Product[] {
-    return this.products;
+  async findAll() {
+    return await this.productModel.find().exec();
   }
 
-  findOne(id: number): Product {
-    return this.products.find((product) => product.id === id);
+  async findOne(id: string) {
+    return await this.productModel.findById(id).exec();
   }
 
-  update(id: number, updateProductDto: UpdateProductDto): Product {
-    const product = this.findOne(id);
-    if (product) {
-      Object.assign(product, updateProductDto);
-    }
-    return product;
+  async update(id: string, updateProductDto: UpdateProductDto) {
+    return await this.productModel
+      .findByIdAndUpdate(id, updateProductDto, { new: true })
+      .exec();
   }
 
-  remove(id: number): void {
-    const index = this.products.findIndex((product) => product.id === id);
-    if (index > -1) {
-      this.products.splice(index, 1);
-    }
+  async remove(id: string) {
+    return await this.productModel.findByIdAndDelete(id).exec();
   }
 }

@@ -6,6 +6,8 @@ import { OwnerModule } from './owner/owner.module';
 import { PetModule } from './pet/pet.module';
 import { ServiceModule } from './service/service.module';
 import { ProductModule } from './product/product.module';
+import { AppointmentModule } from './appointment/appointment.module';
+import { AppointmentItemModule } from './appointment_items/appointment-item.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { ProductModule } from './product/product.module';
     PetModule,
     ServiceModule,
     ProductModule,
+    AppointmentModule,
+    AppointmentItemModule,
   ],
   controllers: [AppController],
   providers: [AppService],

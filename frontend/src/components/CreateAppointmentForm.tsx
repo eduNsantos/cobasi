@@ -1,7 +1,8 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { Select } from './ui/select'
 import { Textarea } from './ui/textarea'
 
 const defaultValues = {
@@ -11,12 +12,55 @@ const defaultValues = {
   annotation: '',
 }
 
+type Owner = {
+  _id: string
+  name: string
+}
+
+type Pet = {
+  _id: string
+  name: string
+  ownerId?: string
+}
+
 export default function CreateAppointmentForm() {
   const [form, setForm] = useState(defaultValues)
+  const [owners, setOwners] = useState<Owner[]>([])
+  const [pets, setPets] = useState<Pet[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loadingData, setLoadingData] = useState(true)
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoadingData(true)
+      try {
+        const [ownersRes, petsRes] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_BASE_URL}/owner`),
+          fetch(`${import.meta.env.VITE_API_BASE_URL}/pet`),
+        ])
+
+        const [ownersData, petsData] = await Promise.all([
+          ownersRes.json(),
+          petsRes.json(),
+        ])
+
+        setOwners(Array.isArray(ownersData) ? ownersData : [])
+        setPets(Array.isArray(petsData) ? petsData : [])
+      } catch (error) {
+        console.error('Erro ao carregar owners/pets:', error)
+        setStatus('Não foi possível carregar proprietários e pets.')
+      } finally {
+        setLoadingData(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
   }
@@ -72,29 +116,45 @@ export default function CreateAppointmentForm() {
 
       <form className="grid gap-5" onSubmit={handleSubmit}>
         <div className="grid gap-2">
-          <Label htmlFor="ownerId">ID do proprietário</Label>
-          <Input
+          <Label htmlFor="ownerId">Proprietário</Label>
+          <Select
             id="ownerId"
             name="ownerId"
-            type="text"
             value={form.ownerId}
             onChange={handleChange}
-            placeholder="Digite o ownerId"
             required
-          />
+            disabled={loadingData}
+          >
+            <option value="">Selecione um proprietário</option>
+            {owners.map((owner) => (
+              <option key={owner._id} value={owner._id}>
+                {owner.name}
+              </option>
+            ))}
+          </Select>
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="petId">ID do pet</Label>
-          <Input
+          <Label htmlFor="petId">Pet</Label>
+          <Select
             id="petId"
             name="petId"
-            type="text"
             value={form.petId}
             onChange={handleChange}
-            placeholder="Digite o petId"
             required
-          />
+            disabled={loadingData || owners.length === 0}
+          >
+            <option value="">
+              {form.ownerId ? 'Selecione um pet' : 'Selecione um proprietário primeiro'}
+            </option>
+            {pets
+              .filter((pet) => !form.ownerId || pet.ownerId === form.ownerId)
+              .map((pet) => (
+                <option key={pet._id} value={pet._id}>
+                  {pet.name}
+                </option>
+              ))}
+          </Select>
         </div>
 
         <div className="grid gap-2">
